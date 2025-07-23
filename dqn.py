@@ -302,6 +302,7 @@ class DQNAgent(AbstractAgent):
             Every this many episodes, print average reward.
         """
         self.training_log = []  # ← new list to store (frame, avg_reward)
+        self.episode_logs = []
 
         state, _ = self.env.reset()
 
@@ -312,9 +313,11 @@ class DQNAgent(AbstractAgent):
         state = state.flatten()
 
         ep_reward = 0.0
+        steps_in_episode = 0
         recent_rewards: List[float] = []
 
         for frame in range(1, num_frames + 1):
+            steps_in_episode += 1
             action = self.predict_action(state)
             next_state, reward, done, truncated, _ = self.env.step(action)
 
@@ -333,8 +336,6 @@ class DQNAgent(AbstractAgent):
             bonus = 1.0 / (self.visit_counts[state_key] ** self.beta)
             shaped_reward = reward + 0.01 * bonus
             #shaped_reward = reward
-
-
 
             if isinstance(next_state, dict) and "image" in next_state:
                 next_state = next_state["image"]
@@ -357,6 +358,33 @@ class DQNAgent(AbstractAgent):
                 _ = self.update_agent(batch)
 
             if done or truncated:
+                # Log intrinsic bonus (mean bonus over this episode if you prefer)
+                state_key = self.hash_state(state)
+                visit_count = self.visit_counts[state_key]
+
+                # Success if environment reward > 0
+                success = 1 if ep_reward > 0 else 0
+
+                self.episode_logs.append({
+                    "episode": len(self.episode_logs),
+                    "frame": frame,
+                    "ep_reward": ep_reward,
+                    "success": success,
+                    "intrinsic_bonus": bonus,  # Last bonus seen in episode
+                    "total_shaped_reward": shaped_reward,
+                    "visit_count": visit_count,
+                    "steps_in_episode": steps_in_episode
+                })
+
+                # Reset episode state
+                state, _ = self.env.reset()
+                ep_reward = 0.0
+                steps_in_episode = 0  # ← reset for next episode
+
+    print("Training complete.")
+
+"""
+            if done or truncated:
                 state, _ = self.env.reset()
                 recent_rewards.append(ep_reward)
                 ep_reward = 0.0
@@ -367,8 +395,9 @@ class DQNAgent(AbstractAgent):
                     f"Frame {frame}, AvgReward(10): {avg:.2f}, epsilon={self.epsilon():.3f}"
                 )
                 self.training_log.append((frame, avg))
+"""
 
-        print("Training complete.")
+
 
 
 
@@ -416,15 +445,36 @@ def main(cfg: DictConfig):
     # 4) instantiate & train
     agent = DQNAgent(env, **agent_kwargs)
     agent.train(cfg.train.num_frames, cfg.train.eval_interval)
-    csv_dir = "results"
-    os.makedirs(csv_dir, exist_ok=True)
-    csv_path = os.path.join(csv_dir, f"{env_name}_rewards_beta{cfg.agent.beta:.2f}.csv")
+    # Create directory
+    os.makedirs("results", exist_ok=True)
+    filename = f"{cfg.env.name}_beta{cfg.agent.beta:.2f}_seed{cfg.seed}.csv"
+    csv_path = os.path.join("results", filename)
 
     with open(csv_path, mode="w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["frame", "avg_reward", "beta"])
-        for frame, avg in agent.training_log:
-            writer.writerow([frame, avg, cfg.agent.beta])
+        writer = csv.DictWriter(f, fieldnames=[
+            "episode", "frame", "ep_reward", "success",
+            "intrinsic_bonus", "total_shaped_reward", "visit_count", "steps_in_episode"
+        ])
+        writer.writeheader()
+        for row in agent.episode_logs:
+            writer.writerow(row)
+
+    print(f"✅ CSV saved to: {csv_path}")
+
+    # Save full state visitation counts for later analysis
+    import pickle
+
+    visit_dir = "results/visit_counts"
+    os.makedirs(visit_dir, exist_ok=True)
+
+    visit_filename = f"{cfg.env.name}_beta{cfg.agent.beta:.2f}_seed{cfg.seed}_visitcounts.pkl"
+    visit_path = os.path.join(visit_dir, visit_filename)
+
+    with open(visit_path, "wb") as f:
+        pickle.dump(agent.visit_counts, f)
+
+    print(f"✅ Visit counts saved to: {visit_path}")
+
 
 if __name__ == "__main__":
      main()

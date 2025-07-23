@@ -4,25 +4,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 from rliable import plot_utils as rplot
 from rliable import library as rly  # Compatibile con versioni più vecchie
+
+# ITALIANO #TODO
 def moving_average(x, window=50):
     return np.convolve(x, np.ones(window)/window, mode='valid')
 
-
-def extract_returns_per_run(csv_path, reward_key="ep_reward"):
+def extract_success_per_run(csv_path):
     """
-    Estrae i valori di reward da un file CSV per un singolo run.
+    Estrae i valori binari di successo da un file CSV per un singolo run.
     """
-    returns = []
+    successes = []
     with open(csv_path, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if reward_key not in row:
-                raise KeyError(f"❌ Column '{reward_key}' not found in: {csv_path}\nHeaders: {list(row.keys())}")
-            returns.append(float(row[reward_key]))
-    return np.array(returns)
+            if "success" not in row:
+                raise KeyError(f"❌ Column 'success' not found in: {csv_path}\nHeaders: {list(row.keys())}")
+            successes.append(float(row["success"]))  # 0.0 or 1.0
+    return np.array(successes)
 
-
-def load_all_runs(folder, env_name):
+def load_all_successes(folder, env_name):
     """
     Carica tutti i CSV relativi a un ambiente specifico, raggruppati per valore di β.
     Ritorna: dict[label_beta, list of np.ndarray] con ogni lista contenente i run per quel β.
@@ -40,7 +40,7 @@ def load_all_runs(folder, env_name):
             label = f"β = {beta:.1f}" if beta > 0 else "DQN"
 
             full_path = os.path.join(folder, filename)
-            run_data = extract_returns_per_run(full_path, reward_key="ep_reward")
+            run_data = extract_success_per_run(full_path)
 
             if label not in methods:
                 methods[label] = []
@@ -51,45 +51,42 @@ def load_all_runs(folder, env_name):
 
     return methods
 
-
-def plot_with_rliable(returns_dict, save_path=None, max_episodes=None):
+def plot_success_rate(success_dict, save_path=None, max_episodes=None):
     # Tronca tutti i run alla stessa lunghezza
-    min_len = min(min(len(run) for run in runs) for runs in returns_dict.values())
+    min_len = min(min(len(run) for run in runs) for runs in success_dict.values())
     if max_episodes:
         min_len = min(min_len, max_episodes)
 
-    for key in returns_dict:
-        returns_dict[key] = [r[:min_len] for r in returns_dict[key]]
+    for key in success_dict:
+        success_dict[key] = [r[:min_len] for r in success_dict[key]]
 
-    # Calcola media e intervallo di confidenza manualmente
-    for label, runs in returns_dict.items():
+    for label, runs in success_dict.items():
         runs_array = np.stack(runs)  # shape: [seeds x episodes]
         mean = np.mean(runs_array, axis=0)
         stderr = np.std(runs_array, axis=0, ddof=1) / np.sqrt(len(runs_array))
-        ci95 = 1.96 * stderr  # Approx 95% CI
-        if len(mean) < 10:  # or use 'window' if defined elsewhere
+        ci95 = 1.96 * stderr  # 95% CI
+
+        if len(mean) < 10:
             print(f"⚠️ Skipping {label}: too few episodes to smooth.")
             continue
 
-        episodes = np.arange(len(mean))
         smoothed_mean = moving_average(mean)
         smoothed_ci95 = moving_average(ci95)
         episodes_smooth = np.arange(len(smoothed_mean))
 
-        plt.plot(episodes_smooth, smoothed_mean, label=label)
         lower_bound = np.clip(smoothed_mean - smoothed_ci95, 0, 1)
         upper_bound = np.clip(smoothed_mean + smoothed_ci95, 0, 1)
 
+        plt.plot(episodes_smooth, smoothed_mean, label=label)
         plt.fill_between(episodes_smooth, lower_bound, upper_bound, alpha=0.2)
 
-        #plt.ylim(0, 1)  # since returns are between 0 and 1 in MiniGrid
-
     plt.xlabel("Episode")
-    plt.ylabel("Episode Return")
+    plt.ylabel("Success Rate (Smoothed)")
     env_title = ENV.replace("MiniGrid-", "").replace("-v0", "")
-    plt.title(f"{env_title} – Learning Curves (95% CI)")
+    plt.title(f"{env_title} – Success Rate (95% CI)")
 
     plt.grid(True)
+    plt.ylim(0, 1)
     plt.legend()
 
     if save_path:
@@ -98,12 +95,11 @@ def plot_with_rliable(returns_dict, save_path=None, max_episodes=None):
     else:
         plt.show()
 
-
-
+# === MAIN ===
 if __name__ == "__main__":
     ENV = "MiniGrid-FourRooms-v0"
     results_folder = "results"
-    save_path = f"plots/{ENV}_rliable_curve.png"
+    save_path = f"plots/{ENV}_success_rate.png"
 
-    data = load_all_runs(results_folder, ENV)
-    plot_with_rliable(data, save_path=save_path)
+    data = load_all_successes(results_folder, ENV)
+    plot_success_rate(data, save_path=save_path)
