@@ -16,6 +16,11 @@ from buffers import ReplayBuffer
 from networks import QNetwork
 from minigrid_env import make_minigrid_env
 from collections import defaultdict
+import sys
+import os
+import csv
+
+
 
 def set_seed(env: gym.Env, seed: int = 0) -> None:
     """
@@ -61,6 +66,7 @@ class DQNAgent(AbstractAgent):
         epsilon_decay: int = 500,
         target_update_freq: int = 1000,
         seed: int = 0,
+        beta: float = 0.5
     ) -> None:
         """
         Initialize replay buffer, Q‐networks, optimizer, and hyperparameters.
@@ -126,7 +132,7 @@ class DQNAgent(AbstractAgent):
         self.total_steps = 0  # for ε decay and target sync
 
         self.visit_counts = defaultdict(int)  # Count visits to each state
-        self.beta = 0.3
+        self.beta = beta
         self.eta = 1.0  # Scaling factor for the bonus
 
     def epsilon(self) -> float:
@@ -295,6 +301,8 @@ class DQNAgent(AbstractAgent):
         eval_interval : int
             Every this many episodes, print average reward.
         """
+        self.training_log = []  # ← new list to store (frame, avg_reward)
+
         state, _ = self.env.reset()
 
         # Fix dict observation format
@@ -311,7 +319,7 @@ class DQNAgent(AbstractAgent):
             next_state, reward, done, truncated, _ = self.env.step(action)
 
             if reward > 0:
-                print(f"🎉 GOAL REACHED at step {frame} with reward {reward}")
+                print(f" GOAL REACHED at step {frame} with reward {reward}")
 
             # Compute count-based bonus
             # Ensure state is flattened before hashing
@@ -323,7 +331,9 @@ class DQNAgent(AbstractAgent):
 
             self.visit_counts[state_key] += 1
             bonus = 1.0 / (self.visit_counts[state_key] ** self.beta)
-            shaped_reward = reward + bonus
+            shaped_reward = reward + 0.01 * bonus
+            #shaped_reward = reward
+
 
 
             if isinstance(next_state, dict) and "image" in next_state:
@@ -351,17 +361,28 @@ class DQNAgent(AbstractAgent):
                 recent_rewards.append(ep_reward)
                 ep_reward = 0.0
                 # logging
-                if len(recent_rewards) % 10 == 0:
-                    avg = np.mean(recent_rewards[-10:])
-                    print(
-                        f"Frame {frame}, AvgReward(10): {avg:.2f}, ε={self.epsilon():.3f}"
-                    )
+
+                avg = np.mean(recent_rewards[-10:])
+                print(
+                    f"Frame {frame}, AvgReward(10): {avg:.2f}, epsilon={self.epsilon():.3f}"
+                )
+                self.training_log.append((frame, avg))
 
         print("Training complete.")
 
 
+
+
 @hydra.main(config_path="configs/agent", config_name="dqn", version_base="1.1")
 def main(cfg: DictConfig):
+    print("✅ Hydra config loaded!")  # DEBUG
+    print(cfg)
+
+    env_name = cfg.env.name.replace("MiniGrid-", "").replace("-v0", "").replace("-", "")
+    beta_str = f"{cfg.agent.beta:.2f}".replace(".", "")
+    log_filename = f"log_{env_name}_beta{beta_str}.txt"
+
+
     # 1) build env (with full observability)
     env = make_minigrid_env(cfg.env.name, seed=cfg.seed, full_obs=True)
     print(env)
@@ -389,13 +410,21 @@ def main(cfg: DictConfig):
         epsilon_decay=cfg.agent.epsilon_decay,
         target_update_freq=cfg.agent.target_update_freq,
         seed=cfg.seed,
+        beta=cfg.agent.beta
     )
 
     # 4) instantiate & train
     agent = DQNAgent(env, **agent_kwargs)
     agent.train(cfg.train.num_frames, cfg.train.eval_interval)
+    csv_dir = "results"
+    os.makedirs(csv_dir, exist_ok=True)
+    csv_path = os.path.join(csv_dir, f"{env_name}_rewards_beta{cfg.agent.beta:.2f}.csv")
 
-
+    with open(csv_path, mode="w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["frame", "avg_reward", "beta"])
+        for frame, avg in agent.training_log:
+            writer.writerow([frame, avg, cfg.agent.beta])
 
 if __name__ == "__main__":
-    main()
+     main()
