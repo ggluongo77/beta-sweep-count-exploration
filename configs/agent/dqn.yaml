@@ -1,17 +1,16 @@
 # @package _global_
 env:
-  name: MiniGrid-Empty-5x5-v0
-
+  name:  MiniGrid-MultiGoal-v0
 seed: 0
 
 agent:
-  buffer_capacity:    10000    # max replay buffer size
+  buffer_capacity:    20000    # max replay buffer size 10000
   batch_size:         32       # minibatch size
   learning_rate:      0.001    # maps to DQNAgent’s lr
   gamma:              0.99
   epsilon_start:      1.0
-  epsilon_final:      0.01
-  epsilon_decay:      500
+  epsilon_final:      0.05 #0.01
+  epsilon_decay:      10000 #500
   target_update_freq: 1000
 
   rnd_hidden_size: 128
@@ -20,6 +19,8 @@ agent:
   rnd_n_layers: 2
   rnd_reward_weight: 0.1
 
+  beta: 0.7
+
 train:
-  num_frames:     100000   # total env steps
+  num_frames:     150000   # total env steps
   eval_interval:  5000    # print avg reward every this many episodes

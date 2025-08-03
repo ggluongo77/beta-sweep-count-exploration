@@ -3,7 +3,6 @@ Deep Q-Learning implementation.
 """
 
 from typing import Any, Dict, List, Tuple
-
 import gymnasium as gym
 import hydra
 import numpy as np
@@ -14,13 +13,12 @@ from omegaconf import DictConfig
 from agent import AbstractAgent
 from buffers import ReplayBuffer
 from networks import QNetwork
-from minigrid_env import make_minigrid_env
+from environments.minigrid_env import make_minigrid_env
 from collections import defaultdict
-import sys
 import os
 import csv
-
-
+import pickle
+from environments import custom_env #important
 
 def set_seed(env: gym.Env, seed: int = 0) -> None:
     """
@@ -132,8 +130,10 @@ class DQNAgent(AbstractAgent):
         self.total_steps = 0  # for ε decay and target sync
 
         self.visit_counts = defaultdict(int)  # Count visits to each state
+        self.spatial_visit_counts = defaultdict(int)  # NEW: true (x, y) tracking
+
         self.beta = beta
-        self.eta = 1.0  # Scaling factor for the bonus
+
 
     def epsilon(self) -> float:
         """
@@ -321,11 +321,14 @@ class DQNAgent(AbstractAgent):
             action = self.predict_action(state)
             next_state, reward, done, truncated, _ = self.env.step(action)
 
+            # Count true spatial position
+            pos = tuple(self.env.agent_pos)
+            self.spatial_visit_counts[pos] += 1
+
             if reward > 0:
                 print(f" GOAL REACHED at step {frame} with reward {reward}")
 
             # Compute count-based bonus
-            # Ensure state is flattened before hashing
             if isinstance(state, dict) and "image" in state:
                 state = state["image"]
             state = state.flatten()
@@ -335,7 +338,7 @@ class DQNAgent(AbstractAgent):
             self.visit_counts[state_key] += 1
             bonus = 1.0 / (self.visit_counts[state_key] ** self.beta)
             shaped_reward = reward + 0.01 * bonus
-            #shaped_reward = reward
+            #shaped_reward = reward  # to use pure DQN
 
             if isinstance(next_state, dict) and "image" in next_state:
                 next_state = next_state["image"]
@@ -379,47 +382,22 @@ class DQNAgent(AbstractAgent):
                 # Reset episode state
                 state, _ = self.env.reset()
                 ep_reward = 0.0
-                steps_in_episode = 0  # ← reset for next episode
-
+                steps_in_episode = 0  # reset for next episode
     print("Training complete.")
-
-"""
-            if done or truncated:
-                state, _ = self.env.reset()
-                recent_rewards.append(ep_reward)
-                ep_reward = 0.0
-                # logging
-
-                avg = np.mean(recent_rewards[-10:])
-                print(
-                    f"Frame {frame}, AvgReward(10): {avg:.2f}, epsilon={self.epsilon():.3f}"
-                )
-                self.training_log.append((frame, avg))
-"""
-
-
-
-
 
 
 @hydra.main(config_path="configs/agent", config_name="dqn", version_base="1.1")
 def main(cfg: DictConfig):
-    print("✅ Hydra config loaded!")  # DEBUG
+    print("Hydra config loaded!")  # DEBUG
     print(cfg)
 
-    env_name = cfg.env.name.replace("MiniGrid-", "").replace("-v0", "").replace("-", "")
-    beta_str = f"{cfg.agent.beta:.2f}".replace(".", "")
-    log_filename = f"log_{env_name}_beta{beta_str}.txt"
 
-
-    # 1) build env (with full observability)
-    env = make_minigrid_env(cfg.env.name, seed=cfg.seed, full_obs=True)
+    # build env (with full observability)
+    env = make_minigrid_env(cfg.env.name, seed=cfg.seed, full_obs=True, render_mode="human") #render_mode="human"
     print(env)
 
-    # 2) flatten one observation to determine obs_dim
     sample_obs, _ = env.reset()
 
-    # Extract the 'image' field if observation is a dict
     if isinstance(sample_obs, dict) and "image" in sample_obs:
         sample_obs = sample_obs["image"]
 
@@ -427,9 +405,8 @@ def main(cfg: DictConfig):
 
     obs_dim = sample_obs.shape[0]
 
-    # 3) map config → agent kwargs
     agent_kwargs = dict(
-        obs_dim=obs_dim,  # ← ADD THIS
+        obs_dim=obs_dim,
         buffer_capacity=cfg.agent.buffer_capacity,
         batch_size=cfg.agent.batch_size,
         lr=cfg.agent.learning_rate,
@@ -442,10 +419,9 @@ def main(cfg: DictConfig):
         beta=cfg.agent.beta
     )
 
-    # 4) instantiate & train
+    # instantiate and train
     agent = DQNAgent(env, **agent_kwargs)
     agent.train(cfg.train.num_frames, cfg.train.eval_interval)
-    # Create directory
     os.makedirs("results", exist_ok=True)
     filename = f"{cfg.env.name}_beta{cfg.agent.beta:.2f}_seed{cfg.seed}.csv"
     csv_path = os.path.join("results", filename)
@@ -459,21 +435,18 @@ def main(cfg: DictConfig):
         for row in agent.episode_logs:
             writer.writerow(row)
 
-    print(f"✅ CSV saved to: {csv_path}")
+    print(f"CSV saved to: {csv_path}")
 
     # Save full state visitation counts for later analysis
-    import pickle
 
-    visit_dir = "results/visit_counts"
+    visit_dir = "results/MiniGrid-MultiGoal-v0/visit_counts"
     os.makedirs(visit_dir, exist_ok=True)
 
-    visit_filename = f"{cfg.env.name}_beta{cfg.agent.beta:.2f}_seed{cfg.seed}_visitcounts.pkl"
-    visit_path = os.path.join(visit_dir, visit_filename)
+    spatial_path = f"{cfg.env.name}_beta{cfg.agent.beta:.2f}_seed{cfg.seed}_spatial.pkl"
+    with open(spatial_path, "wb") as f:
+        pickle.dump(agent.spatial_visit_counts, f)
 
-    with open(visit_path, "wb") as f:
-        pickle.dump(agent.visit_counts, f)
-
-    print(f"✅ Visit counts saved to: {visit_path}")
+    print(f" Spatial visit counts saved to: {spatial_path}")
 
 
 if __name__ == "__main__":
