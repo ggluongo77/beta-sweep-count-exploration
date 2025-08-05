@@ -1,0 +1,9 @@
+
+Mann–Whitney U-Test on SUCCESS (pairwise β comparison)
+------------------------------------------------------------
+β = 0.0 vs β = 0.3 → p = 0.9657 | Not significant
+β = 0.0 vs β = 0.5 → p = 0.5928 | Not significant
+β = 0.0 vs β = 0.7 → p = 0.8611 | Not significant
+β = 0.3 vs β = 0.5 → p = 0.4203 | Not significant
+β = 0.3 vs β = 0.7 → p = 0.8234 | Not significant
+β = 0.5 vs β = 0.7 → p = 0.5571 | Not significant

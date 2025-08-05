@@ -1,0 +1,9 @@
+
+Mann–Whitney U-Test on EP_REWARD (pairwise β comparison)
+------------------------------------------------------------
+β = 0.0 vs β = 0.3 → p = 0.4270 | Not significant
+β = 0.0 vs β = 0.5 → p = 0.0558 | Not significant
+β = 0.0 vs β = 0.7 → p = 0.2625 | Not significant
+β = 0.3 vs β = 0.5 → p = 0.0331 | Significant
+β = 0.3 vs β = 0.7 → p = 0.5441 | Not significant
+β = 0.5 vs β = 0.7 → p = 0.1268 | Not significant

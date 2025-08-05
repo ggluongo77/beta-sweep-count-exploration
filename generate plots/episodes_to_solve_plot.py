@@ -102,7 +102,7 @@ def plot_episodes_to_solve(data, save_path=None, max_episode_display=350):
         plt.show()
 
 if __name__ == "__main__":
-    ENV = "MiniGrid-MultiGoal-v0"
+    ENV = "MiniGrid-FourRooms-v0"
     results_folder = f"../results/{ENV}"
     save_path = f"../plots/{ENV}/{ENV}_episodes_to_solve.png"
 

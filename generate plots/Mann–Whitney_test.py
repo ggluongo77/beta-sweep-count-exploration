@@ -38,23 +38,36 @@ def load_groups_by_beta(folder, env_name, key="ep_reward"):
 def flatten(group):
     return np.concatenate(group)
 
-def pairwise_mannwhitney(groups, metric_name):
-    print(f"\n📊 Mann–Whitney U-Test on {metric_name.upper()} (pairwise β comparison)\n" + "-" * 60)
+def pairwise_mannwhitney(groups, metric_name, output_path=None):
+    output_lines = []
+    header = f"\nMann–Whitney U-Test on {metric_name.upper()} (pairwise β comparison)\n" + "-" * 60
+    print(header)
+    output_lines.append(header)
+
     labels = sorted(groups.keys())
     for a, b in itertools.combinations(labels, 2):
         data_a = flatten(groups[a])
         data_b = flatten(groups[b])
         stat, p = mannwhitneyu(data_a, data_b, alternative='two-sided')
-        print(f"{a} vs {b} → p = {p:.4f} | {'✅ Significant' if p < 0.05 else '✴️ Not significant'}")
+        result = f"{a} vs {b} → p = {p:.4f} | {'Significant' if p < 0.05 else 'Not significant'}"
+        print(result)
+        output_lines.append(result)
+
+    if output_path:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(output_lines))
 
 if __name__ == "__main__":
-    ENV = "MiniGrid-MultiGoal-v0"
-    results_folder = "../results"
+    ENV = "MiniGrid-LavaGapS7-v0"
+    results_folder = f"../results/{ENV}"
 
-    # Test on episode return
+    # Run test on episode return
     rewards = load_groups_by_beta(results_folder, ENV, key="ep_reward")
-    pairwise_mannwhitney(rewards, metric_name="ep_reward")
+    output_path = os.path.join("..", "plots", ENV, f"{ENV}_mannwhitney_ep_reward.txt")
+    pairwise_mannwhitney(rewards, metric_name="ep_reward", output_path=output_path)
 
-    # Optionally: test on success rate
+    # Run test on success rate
     success = load_groups_by_beta(results_folder, ENV, key="success")
-    pairwise_mannwhitney(success, metric_name="success")
+    output_path = os.path.join("..", "plots", ENV, f"{ENV}_mannwhitney_success.txt")
+    pairwise_mannwhitney(success, metric_name="success", output_path=output_path)
+

@@ -129,7 +129,7 @@ def plot_success_rate(success_dict, save_path=None, max_episodes=None):
 
 
 if __name__ == "__main__":
-    ENV = "MiniGrid-MultiGoal-v0"
+    ENV = "MiniGrid-FourRooms-v0"
     results_folder = f"../results/{ENV}"
     save_path = f"../plots/{ENV}/{ENV}_success_rate.png"
 

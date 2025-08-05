@@ -393,7 +393,7 @@ def main(cfg: DictConfig):
 
 
     # build env (with full observability)
-    env = make_minigrid_env(cfg.env.name, seed=cfg.seed, full_obs=True, render_mode="human") #render_mode="human"
+    env = make_minigrid_env(cfg.env.name, seed=cfg.seed, full_obs=True, render_mode=None) #render_mode="human"
     print(env)
 
     sample_obs, _ = env.reset()
@@ -438,9 +438,6 @@ def main(cfg: DictConfig):
     print(f"CSV saved to: {csv_path}")
 
     # Save full state visitation counts for later analysis
-
-    visit_dir = "results/MiniGrid-MultiGoal-v0/visit_counts"
-    os.makedirs(visit_dir, exist_ok=True)
 
     spatial_path = f"{cfg.env.name}_beta{cfg.agent.beta:.2f}_seed{cfg.seed}_spatial.pkl"
     with open(spatial_path, "wb") as f:
