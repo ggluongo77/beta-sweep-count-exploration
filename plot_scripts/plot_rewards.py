@@ -74,7 +74,7 @@ def load_all_runs(folder, env_name):
     return methods
 
 
-def plot_with_rliable(returns_dict, save_path=None, max_episodes=None):
+def generate_plot(returns_dict, save_path=None, max_episodes=None):
     """
     Plots learning curves with 95% confidence intervals.
 
@@ -122,7 +122,7 @@ def plot_with_rliable(returns_dict, save_path=None, max_episodes=None):
     plt.grid(True)
     plt.legend()
 
-    # Save or display
+
     if save_path:
         plt.savefig(save_path)
         print(f"Plot saved to {save_path}")
@@ -136,4 +136,4 @@ if __name__ == "__main__":
     save_path = f"../plots/{ENV}/{ENV}_episode_reward.png"
 
     data = load_all_runs(results_folder, ENV)
-    plot_with_rliable(data, save_path=save_path)
+    generate_plot(data, save_path=save_path)
