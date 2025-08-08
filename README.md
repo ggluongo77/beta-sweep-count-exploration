@@ -9,7 +9,7 @@ Experiments compare **β ∈ {0.3, 0.5, 0.7}** across:
 * **LavaGapS7** (risk-sensitive navigation)
 * **MultiGoal** (custom environment)
 
----
+
 
 ## Requirements & Installation
 
@@ -31,7 +31,7 @@ source .venv/bin/activate
 make install
 ```
 
----
+
 
 ## Running Training
 
@@ -43,7 +43,7 @@ python dqn.py
 
 Parameters and hyperparameters are configured using Hydra in `configs/agent/dqn.yaml`.
 
----
+
 
 ## Plotting and Analysis
 
@@ -61,7 +61,7 @@ python plot_scripts/mann_whitney_test.py
 
 Each script reads the CSV logs from `results/` and produces figures.
 
----
+
 
 ## Repository Structure
 
