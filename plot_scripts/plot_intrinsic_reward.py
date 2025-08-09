@@ -77,7 +77,6 @@ def plot_intrinsic_dynamics(bonus_dict, save_path=None, max_episodes=None):
 
     if save_path:
         plt.savefig(save_path)
-        print(f"✅ Plot saved to {save_path}")
     else:
         plt.show()
 
