@@ -10,7 +10,7 @@ def load_visit_counts(env_name, beta_value, seeds, folder="../results/visit_coun
 
         file_path = os.path.join(folder, filename)
         if not os.path.exists(file_path):
-            print(f"⚠️ File not found: {file_path}")
+            print(f"File not found: {file_path}")
             continue
         with open(file_path, "rb") as f:
             visit_counts = pickle.load(f)
