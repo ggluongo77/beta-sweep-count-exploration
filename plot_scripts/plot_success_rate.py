@@ -98,7 +98,7 @@ def plot_success_rate(success_dict, save_path=None, max_episodes=None):
         ci95 = 1.96 * stderr  # 95% CI
 
         if len(mean) < 10:
-            print(f"⚠️ Skipping {label}: too few episodes to smooth.")
+            print(f"Skipping {label}: too few episodes to smooth.")
             continue
 
         smoothed_mean = moving_average(mean)
@@ -123,7 +123,6 @@ def plot_success_rate(success_dict, save_path=None, max_episodes=None):
     # Save or show
     if save_path:
         plt.savefig(save_path)
-        print(f"✅ Plot saved to {save_path}")
     else:
         plt.show()
 
