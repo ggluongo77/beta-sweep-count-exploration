@@ -6,7 +6,6 @@ from rliable import metrics
 from rliable import library as rly
 from rliable import plot_utils as rly_plot
 
-# === CONFIGURATION ===
 results_root = "../results"
 output_dir = "../plots"
 betas = [0.3, 0.5, 0.7]
@@ -18,7 +17,7 @@ target_metrics = [
     "steps_in_episode"
 ]
 
-# === Extract final k values per run for a given metric
+
 def extract_metric(csv_path, metric_name, last_k):
     values = []
     with open(csv_path, "r") as f:
@@ -31,10 +30,10 @@ def extract_metric(csv_path, metric_name, last_k):
         raise ValueError(f"Not enough episodes in {csv_path}")
     return np.mean(values[-last_k:])
 
-# === Create output directory
+
 os.makedirs(output_dir, exist_ok=True)
 
-# === Loop over all target metrics
+# Loop over all target metrics
 for target_metric in target_metrics:
     print(f"\nProcessing: {target_metric}")
 
@@ -66,7 +65,7 @@ for target_metric in target_metrics:
     score_matrix = {label: np.array(env_runs) for label, env_runs in beta_scores.items()}
 
     if not any(len(v) > 0 for v in score_matrix.values()):
-        print(f"⚠️ Skipping metric '{target_metric}' due to missing data.")
+        print(f"Skipping metric '{target_metric}' due to missing data.")
         continue
 
     # Define aggregation
