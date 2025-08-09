@@ -37,39 +37,37 @@ def load_all_first_success(folder, env_name):
             full_path = os.path.join(folder, filename)
             first_success = extract_first_success(full_path)
 
-            if label not in methods:
-                methods[label] = []
-            methods[label].append(first_success)
+            methods.setdefault(label, []).append(first_success)
 
         except Exception as e:
-            print(f"⚠️ Skipping file {filename}: {e}")
+            print(f"Skipping file {filename}: {e}")
 
     return methods
 
-def plot_episodes_to_solve(data, save_path=None, max_episode_display=350):
+def plot_episodes_to_solve(data, env_name, save_path=None, max_episode_display=350):
     """
-    Plots the average episodes-to-solve per β, with 95% CI.
-    Bars are gray if no runs solved the task.
+    Plots the average episodes-to-solve per β with 95% CI.
     """
-    labels = []
-    means = []
-    errors = []
-    colors = []
+    labels, means, errors, colors = [], [], [], []
 
-    for label, values in data.items():
+    # Optional: stable ordering
+    order = ["DQN", "β = 0.3", "β = 0.5", "β = 0.7"]
+    items = sorted(data.items(), key=lambda kv: order.index(kv[0]) if kv[0] in order else 999)
+
+    for label, values in items:
         successes = [v for v in values if np.isfinite(v)]
 
         if len(successes) == 0:
-            print(f"{label} never solved the task.")
             labels.append(f"{label} (unsolved)")
-            means.append(max_episode_display)
-            errors.append(0)
+            means.append(float(max_episode_display))
+            errors.append(0.0)
             colors.append("gray")
         else:
-            arr = np.array(successes)
-            mean = np.mean(arr)
-            stderr = np.std(arr, ddof=1) / np.sqrt(len(arr))
-            ci95 = 1.96 * stderr  # Approximate 95% CI
+            arr = np.array(successes, dtype=float)
+            mean = max(0.0, float(np.mean(arr)))
+            stderr = float(np.std(arr, ddof=1) / np.sqrt(len(arr))) if len(arr) > 1 else 0.0
+            ci95 = max(0.0, 1.96 * stderr)
+
             labels.append(label)
             means.append(mean)
             errors.append(ci95)
@@ -85,26 +83,32 @@ def plot_episodes_to_solve(data, save_path=None, max_episode_display=350):
             else:
                 colors.append("gray")
 
-    # Plotting
+
     plt.figure(figsize=(8, 6))
     x = np.arange(len(labels))
     plt.bar(x, means, yerr=errors, capsize=5, color=colors)
     plt.xticks(x, labels)
     plt.ylabel("Episodes to First Success")
-    env_title = ENV.replace("MiniGrid-", "").replace("-v0", "")
+
+    env_title = env_name.replace("MiniGrid-", "").replace("-v0", "")
     plt.title(f"{env_title} – Sample Efficiency (95% CI)")
     plt.grid(axis="y")
 
+
+    top = max([m + e for m, e in zip(means, errors)] + [max_episode_display])
+    plt.ylim(0, top * 1.05)  # bottom=0 ensures no negative ticks
+
     if save_path:
-        plt.savefig(save_path)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, bbox_inches="tight")
         print(f"Plot saved to {save_path}")
     else:
         plt.show()
 
 if __name__ == "__main__":
-    ENV = "MiniGrid-FourRooms-v0"
+    ENV = "MiniGrid-LavaGapS7-v0"
     results_folder = f"../results/{ENV}"
     save_path = f"../plots/{ENV}/{ENV}_episodes_to_solve.png"
 
     data = load_all_first_success(results_folder, ENV)
-    plot_episodes_to_solve(data, save_path=save_path)
+    plot_episodes_to_solve(data, env_name=ENV, save_path=save_path)

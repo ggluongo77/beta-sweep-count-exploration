@@ -131,7 +131,7 @@ def generate_plot(returns_dict, save_path=None, max_episodes=None):
 
 
 if __name__ == "__main__":
-    ENV = "MiniGrid-FourRooms-v0"
+    ENV = "MiniGrid-Empty-Random-6x6-v0"
     results_folder = f"../results/{ENV}"
     save_path = f"../plots/{ENV}/{ENV}_episode_reward.png"
 
