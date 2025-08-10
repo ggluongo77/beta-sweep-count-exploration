@@ -3,6 +3,10 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+Plots smoothed success rate curves with 95% confidence intervals for each β in a MiniGrid environment,
+using binary success data from CSV logs.
+"""
 
 def moving_average(x, window=50):
     """
