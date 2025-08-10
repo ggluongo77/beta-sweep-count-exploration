@@ -4,6 +4,11 @@ import itertools
 import numpy as np
 from scipy.stats import mannwhitneyu
 
+"""
+Runs pairwise Mann–Whitney U-tests on metrics across β values for a MiniGrid environment.
+Loads CSV logs, compares all β pairs, and saves p-values to a text file.
+"""
+
 def extract_metric(csv_path, key="ep_reward"):
     values = []
     with open(csv_path, 'r') as f:
