@@ -6,6 +6,11 @@ from rliable import metrics
 from rliable import library as rly
 from rliable import plot_utils as rly_plot
 
+"""
+Generates aggregate performance plots for multiple β values across different MiniGrid environments
+using the rliable library.
+"""
+
 results_root = "../results"
 output_dir = "../plots"
 betas = [0.3, 0.5, 0.7]
