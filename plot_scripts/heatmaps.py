@@ -28,7 +28,7 @@ def plot_heatmap(counts, grid_size, title="", save_path=None):
             if 0 <= x < grid_size and 0 <= y < grid_size:
                 heatmap[y, x] = count
         else:
-            print(f"⚠️ Invalid key format: {key} (expected (x, y))")
+            print(f"Invalid key format: {key} (expected (x, y))")
 
     plt.figure(figsize=(6, 6))
     im = plt.imshow(heatmap, cmap='viridis', origin='lower')
