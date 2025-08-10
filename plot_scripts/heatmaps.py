@@ -3,6 +3,17 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+Loads aggregated state visitation counts for a given MiniGrid environment, β value, and seeds,
+then generates and saves a 2D heatmap of visit frequencies.
+
+Input:
+    Pickled files named <env_name>_beta{β}_seed{seed}_spatial.pkl in the specified folder.
+
+Output:
+    PNG heatmap showing visit counts per grid cell.
+"""
+
 def load_visit_counts(env_name, beta_value, seeds, folder="../results/visit_counts"):
     combined_counts = {}
     for seed in seeds:
