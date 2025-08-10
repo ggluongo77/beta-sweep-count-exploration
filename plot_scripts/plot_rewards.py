@@ -3,6 +3,11 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+Plots learning curves with 95% confidence intervals for each β in a MiniGrid environment,
+using episode return data from CSV logs.
+"""
+
 
 def moving_average(x, window=50):
     """
