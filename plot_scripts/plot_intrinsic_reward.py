@@ -3,6 +3,12 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+Plots smoothed intrinsic bonus dynamics over training for each β > 0 in a MiniGrid environment,
+with 95% confidence intervals, from CSV log files.
+"""
+
+
 def moving_average(x, window=50):
     return np.convolve(x, np.ones(window)/window, mode='valid')
 
