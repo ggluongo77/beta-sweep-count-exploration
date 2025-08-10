@@ -3,6 +3,12 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+Computes and plots episodes-to-first-success for each β in a MiniGrid environment,
+including 95% confidence intervals, from CSV log files.
+"""
+
+
 def extract_first_success(csv_path):
     """
     Extracts the first success episode from a CSV log.
